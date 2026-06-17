@@ -5,7 +5,7 @@ import plotly.express as px
 # =========================
 # 페이지 설정
 # =========================
-st.set_page_config(page_title="상권 분석", layout="wide")
+st.set_page_config(page_title="천안 상권 분석", layout="wide")
 
 st.title("🍝 천안 상권 방문 분석")
 
@@ -18,33 +18,26 @@ df["text"] = df["text"].fillna("")
 df["region"] = df["region"].fillna("기타")
 
 # =========================
-# 🔥 app에서만 키워드 생성 (핵심)
+# 날짜 처리 (기간 필터)
 # =========================
-def make_keywords(text):
-    text = str(text)
+if "date" in df.columns:
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
-    if any(w in text for w in ["빠르게", "급하게", "점심"]):
-        return "⚡ 빠른 점심"
+    st.sidebar.subheader("📅 기간 선택")
 
-    if any(w in text for w in ["데이트", "분위기", "감성"]):
-        return "💑 데이트"
+    min_date = df["date"].min()
+    max_date = df["date"].max()
 
-    if any(w in text for w in ["혼밥", "혼자"]):
-        return "🍽 혼밥"
+    if pd.notnull(min_date) and pd.notnull(max_date):
+        date_range = st.sidebar.date_input(
+            "기간",
+            [min_date, max_date]
+        )
 
-    if any(w in text for w in ["웨이팅", "기다림"]):
-        return "⏳ 웨이팅"
-
-    if any(w in text for w in ["가성비", "저렴"]):
-        return "💰 가성비"
-
-    return "📌 기타"
-
-
-# =========================
-# 키워드 컬럼 생성 (app에서만)
-# =========================
-df["keyword"] = df["text"].apply(make_keywords)
+        if len(date_range) == 2:
+            start, end = date_range
+            df = df[(df["date"] >= pd.to_datetime(start)) &
+                    (df["date"] <= pd.to_datetime(end))]
 
 # =========================
 # 사이드바 필터
@@ -68,7 +61,36 @@ col2.metric("📍 지역", region)
 st.divider()
 
 # =========================
-# 📊 가로 그래프 (완전 수정)
+# 🔥 키워드 생성 (app 내부 처리)
+# =========================
+def make_keywords(text):
+    text = str(text)
+
+    if any(w in text for w in ["빠르게", "급하게", "점심"]):
+        return "⚡ 빠른 점심"
+
+    if any(w in text for w in ["데이트", "분위기", "감성"]):
+        return "💑 데이트"
+
+    if any(w in text for w in ["혼밥", "혼자"]):
+        return "🍽 혼밥"
+
+    if any(w in text for w in ["웨이팅", "기다림"]):
+        return "⏳ 웨이팅"
+
+    if any(w in text for w in ["가성비", "저렴"]):
+        return "💰 가성비"
+
+    if any(w in text for w in ["재방문", "또", "자주"]):
+        return "🔁 재방문"
+
+    return "📌 기타"
+
+
+df["keyword"] = df["text"].apply(make_keywords)
+
+# =========================
+# 📊 키워드 그래프 (가로)
 # =========================
 st.subheader("📊 핵심 방문 키워드")
 
@@ -87,8 +109,8 @@ fig = px.bar(
 
 fig.update_layout(
     height=500,
-    yaxis_title="",
     xaxis_title="빈도",
+    yaxis_title="",
     margin=dict(l=20, r=20, t=20, b=20)
 )
 
@@ -97,7 +119,7 @@ st.plotly_chart(fig, use_container_width=True)
 st.divider()
 
 # =========================
-# 🔍 클릭 → 리뷰 보기 (app에서 해결)
+# 🔍 클릭 → 리뷰 보기
 # =========================
 st.subheader("🔍 키워드별 리뷰 보기")
 
@@ -105,15 +127,15 @@ selected = st.selectbox("키워드 선택", df["keyword"].unique())
 
 filtered_reviews = df[df["keyword"] == selected]["text"]
 
-st.write(f"📝 총 {len(filtered_reviews)}개")
+st.write(f"📝 총 {len(filtered_reviews)}개 리뷰")
 
-for r in filtered_reviews[:30]:
+for r in filtered_reviews:
     st.markdown(f"• {r}")
 
 st.divider()
 
 # =========================
-# 전체 데이터
+# 📋 전체 데이터
 # =========================
 st.subheader("📋 전체 데이터")
 
