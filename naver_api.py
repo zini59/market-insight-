@@ -20,8 +20,19 @@ def naver_place_search(query):
 
     res = requests.get(url, headers=headers, params=params)
 
-    # 오류 체크 (중요)
     if res.status_code != 200:
         return {"error": res.text}
 
-    return res.json()
+    data = res.json()
+
+    # 👉 필요한 정보만 정리해서 반환
+    results = []
+
+    for item in data.get("items", []):
+        results.append({
+            "title": item.get("title"),
+            "address": item.get("address"),
+            "category": item.get("category")
+        })
+
+    return results
