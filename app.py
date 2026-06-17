@@ -6,8 +6,11 @@ from analyzer import (
     intent_detail,
     structured_keywords,
     marketing_recommend,
-    ad_copy
+    ad_copy,
+    advanced_intent
 )
+
+from naver_api import naver_place_search
 
 # =========================
 # 기본 설정
