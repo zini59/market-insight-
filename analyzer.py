@@ -1,97 +1,67 @@
 from collections import Counter
+import re
 
 # =========================
-# 방문 목적 분석
+# 핵심 키워드 추출 (개선)
 # =========================
-def classify_intent(text):
+def extract_keywords(text):
     text = str(text)
 
-    if "점심" in text or "식사" in text or "맛집" in text:
-        return "식사/점심"
+    keywords = []
 
-    if "데이트" in text or "분위기" in text:
-        return "데이트"
+    if any(w in text for w in ["빠르게", "급하게", "점심시간"]):
+        keywords.append("⚡ 빠른 점심")
 
-    if "카페" in text or "대기" in text:
-        return "대기/카페"
+    if any(w in text for w in ["데이트", "분위기", "감성"]):
+        keywords.append("💑 데이트 장소")
 
-    if "터미널" in text or "버스" in text:
-        return "이동"
+    if any(w in text for w in ["혼밥", "혼자"]):
+        keywords.append("🍽 혼밥")
 
-    return "기타"
+    if any(w in text for w in ["웨이팅", "기다림"]):
+        keywords.append("⏳ 웨이팅")
 
+    if any(w in text for w in ["가성비", "저렴"]):
+        keywords.append("💰 가성비")
 
-# =========================
-# 세부 목적 분석
-# =========================
-def intent_detail(text):
-    text = str(text)
+    if any(w in text for w in ["재방문", "또", "자주"]):
+        keywords.append("🔁 재방문")
 
-    if "빨리" in text or "급하게" in text:
-        return "빠른 점심"
+    if not keywords:
+        keywords.append("📌 일반 방문")
 
-    if "감성" in text or "분위기" in text:
-        return "감성 데이트"
-
-    if "오래" in text or "카페" in text:
-        return "장시간 체류"
-
-    return "일반"
+    return keywords
 
 
 # =========================
-# 패턴 분석
+# 데이터 펼치기 (핵심)
 # =========================
-def structured_keywords(df):
-    result = []
+def expand_keywords(df):
+    all_keywords = []
 
     for _, row in df.iterrows():
         text = str(row["text"])
-        region = row.get("region", "unknown")
+        kws = extract_keywords(text)
 
-        intent = classify_intent(text)
-        detail = intent_detail(text)
+        for k in kws:
+            all_keywords.append(k)
 
-        result.append(f"{intent}-{detail}-{region}")
-
-    return Counter(result).most_common(30)
+    return Counter(all_keywords)
 
 
 # =========================
-# 마케팅 추천
+# 리뷰 매핑 (클릭용)
 # =========================
-def marketing_recommend(df):
-    r = df["intent"].value_counts(normalize=True)
+def keyword_to_reviews(df):
+    mapping = {}
 
-    out = []
+    for _, row in df.iterrows():
+        text = str(row["text"])
+        kws = extract_keywords(text)
 
-    if r.get("식사/점심", 0) > 0.4:
-        out.append("런치 메뉴 강화 + 회전율 전략")
+        for k in kws:
+            if k not in mapping:
+                mapping[k] = []
+            mapping[k].append(text)
 
-    if r.get("데이트", 0) > 0.2:
-        out.append("감성/데이트 마케팅 강화")
-
-    if r.get("대기/카페", 0) > 0.15:
-        out.append("체류형 메뉴 강화")
-
-    return out
-
-
-# =========================
-# 광고 문구 생성
-# =========================
-def ad_copy(df):
-    r = df["intent"].value_counts(normalize=True)
-
-    ads = []
-
-    if r.get("식사/점심", 0) > 0.4:
-        ads.append("15분 런치 파스타")
-
-    if r.get("데이트", 0) > 0.2:
-        ads.append("신부동 감성 데이트 맛집")
-
-    if r.get("대기/카페", 0) > 0.15:
-        ads.append("편하게 머무는 공간")
-
-    return ads
+    return mapping
