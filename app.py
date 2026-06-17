@@ -8,11 +8,11 @@ from analyzer import (
 )
 
 # =========================
-# 기본 설정
+# 페이지 설정
 # =========================
 st.set_page_config(page_title="천안 상권 분석", layout="wide")
 
-st.title("🍝 천안 상권 방문 분석 대시보드")
+st.title("🍝 천안 상권 방문 분석")
 
 # =========================
 # 데이터 로드
@@ -27,8 +27,8 @@ df["region"] = df["region"].fillna("기타")
 # =========================
 st.sidebar.header("🔎 필터")
 
-region_list = ["전체"] + sorted(df["region"].unique().tolist())
-region = st.sidebar.selectbox("지역 선택", region_list)
+regions = ["전체"] + sorted(df["region"].unique().tolist())
+region = st.sidebar.selectbox("지역 선택", regions)
 
 if region != "전체":
     df = df[df["region"] == region]
@@ -38,8 +38,8 @@ if region != "전체":
 # =========================
 col1, col2 = st.columns(2)
 
-col1.metric("📊 전체 리뷰 수", len(df))
-col2.metric("📍 선택 지역", region)
+col1.metric("📊 리뷰 수", len(df))
+col2.metric("📍 지역", region)
 
 st.divider()
 
@@ -65,21 +65,21 @@ fig = px.bar(
 
 fig.update_layout(
     height=500,
+    margin=dict(l=20, r=20, t=20, b=20),
     xaxis_title="빈도",
-    yaxis_title="",
-    margin=dict(l=20, r=20, t=20, b=20)
+    yaxis_title=""
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
-st.caption("※ 실제 리뷰 문장을 기반으로 핵심 키워드를 추출합니다")
+st.caption("※ 리뷰 기반 자동 키워드 분석")
 
 st.divider()
 
 # =========================
 # 키워드 클릭 → 리뷰 보기
 # =========================
-st.subheader("🔍 키워드별 실제 리뷰 보기")
+st.subheader("🔍 키워드별 리뷰 보기")
 
 mapping = keyword_to_reviews(df)
 
