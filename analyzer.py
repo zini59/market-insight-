@@ -1,100 +1,90 @@
 from collections import Counter
-import re
 
 # =========================
-# 1. 기본 방문 목적
+# 1. 방문 목적 (고도화)
 # =========================
-def classify_intent(text):
+def advanced_intent(text):
     text = str(text)
 
-    if any(w in text for w in ["점심", "식사", "먹", "혼밥"]):
-        return "식사/점심"
+    # 직장인 점심
+    if "점심" in text and "빠르게" in text:
+        return "직장인 빠른 점심"
 
-    if any(w in text for w in ["데이트", "분위기", "연인"]):
-        return "데이트"
+    # 일반 점심
+    if "점심" in text:
+        return "점심 식사"
 
-    if any(w in text for w in ["카페", "시간", "대기", "기다"]):
-        return "대기/카페"
+    # 데이트
+    if "데이트" in text or "분위기" in text:
+        return "감성 데이트"
 
-    if any(w in text for w in ["터미널", "버스", "잠깐"]):
-        return "이동"
+    # 카페 체류
+    if "카페" in text or "오래" in text:
+        return "장시간 체류"
 
-    if any(w in text for w in ["회식", "모임", "술"]):
-        return "회식"
+    # 이동
+    if "터미널" in text or "기다림" in text:
+        return "이동 대기 소비"
+
+    # 혼밥
+    if "혼밥" in text:
+        return "개인 식사"
 
     return "기타"
 
 
 # =========================
-# 2. 세부 방문 목적
-# =========================
-def intent_detail(text):
-    text = str(text)
-
-    if any(w in text for w in ["빨리", "급하게", "짧게"]):
-        return "빠른 점심"
-
-    if any(w in text for w in ["데이트", "분위기", "감성"]):
-        return "분위기 점심"
-
-    if any(w in text for w in ["터미널", "버스", "잠깐"]):
-        return "이동형 식사"
-
-    return "일반"
-
-
-# =========================
-# 3. 구조형 키워드
+# 2. 구조 키워드
 # =========================
 def structured_keywords(df):
-    results = []
+    result = []
 
     for _, row in df.iterrows():
         text = str(row["text"])
-        intent = classify_intent(text)
-        detail = intent_detail(text)
         region = row.get("region", "unknown")
 
-        results.append(f"{intent}-{detail}-{region}")
+        intent = advanced_intent(text)
 
-    return Counter(results).most_common(30)
+        result.append(f"{intent}-{region}")
+
+    return Counter(result).most_common(30)
 
 
 # =========================
-# 4. 마케팅 추천
+# 3. 마케팅 추천
 # =========================
 def marketing_recommend(df):
-    intent_ratio = df["intent"].value_counts(normalize=True)
+    r = df["intent"].value_counts(normalize=True)
 
-    result = []
+    out = []
 
-    if intent_ratio.get("식사/점심", 0) > 0.4:
-        result.append("런치세트 / 빠른 회전 강조")
+    if r.get("점심 식사", 0) > 0.4:
+        out.append("런치 메뉴 + 회전율 중심 광고 필요")
 
-    if intent_ratio.get("데이트", 0) > 0.2:
-        result.append("분위기 / 감성 마케팅 강화")
+    if r.get("감성 데이트", 0) > 0.2:
+        out.append("감성/데이트 광고 강화 필요")
 
-    if intent_ratio.get("대기/카페", 0) > 0.15:
-        result.append("체류형 메뉴 / 음료 강화")
+    if r.get("장시간 체류", 0) > 0.15:
+        out.append("음료/디저트 강화 필요")
 
-    return result
+    return out
 
 
 # =========================
-# 5. 광고 문구 생성
+# 4. 광고 문구
 # =========================
 def ad_copy(df):
-    intent_ratio = df["intent"].value_counts(normalize=True)
+    r = df["intent"].value_counts(normalize=True)
 
     ads = []
 
-    if intent_ratio.get("식사/점심", 0) > 0.4:
-        ads.append("✔ 15분 안에 나오는 런치 파스타")
+    if r.get("점심 식사", 0) > 0.4:
+        ads.append("✔ 빠르게 나오는 점심 파스타")
 
-    if intent_ratio.get("데이트", 0) > 0.2:
+    if r.get("감성 데이트", 0) > 0.2:
         ads.append("✔ 신부동 감성 데이트 맛집")
 
-    if intent_ratio.get("대기/카페", 0) > 0.15:
-        ads.append("✔ 커피 한잔하기 좋은 공간")
+    if r.get("장시간 체류", 0) > 0.15:
+        ads.append("✔ 오래 머물기 좋은 카페 분위기")
 
     return ads
