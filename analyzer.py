@@ -1,40 +1,46 @@
 from collections import Counter
 
 # =========================
-# 1. 방문 목적 (고도화)
+# 방문 목적 분석
 # =========================
-def advanced_intent(text):
+def classify_intent(text):
     text = str(text)
 
-    # 직장인 점심
-    if "점심" in text and "빠르게" in text:
-        return "직장인 빠른 점심"
+    if any(w in text for w in ["점심", "식사", "혼밥"]):
+        return "식사/점심"
 
-    # 일반 점심
-    if "점심" in text:
-        return "점심 식사"
+    if any(w in text for w in ["데이트", "분위기"]):
+        return "데이트"
 
-    # 데이트
-    if "데이트" in text or "분위기" in text:
-        return "감성 데이트"
+    if any(w in text for w in ["카페", "대기"]):
+        return "대기/카페"
 
-    # 카페 체류
-    if "카페" in text or "오래" in text:
-        return "장시간 체류"
-
-    # 이동
-    if "터미널" in text or "기다림" in text:
-        return "이동 대기 소비"
-
-    # 혼밥
-    if "혼밥" in text:
-        return "개인 식사"
+    if any(w in text for w in ["터미널", "버스"]):
+        return "이동"
 
     return "기타"
 
 
 # =========================
-# 2. 구조 키워드
+# 세부 목적
+# =========================
+def intent_detail(text):
+    text = str(text)
+
+    if any(w in text for w in ["빨리", "급하게"]):
+        return "빠른 점심"
+
+    if any(w in text for w in ["분위기", "감성"]):
+        return "감성 점심"
+
+    if any(w in text for w in ["오래", "카페"]):
+        return "장시간 체류"
+
+    return "일반"
+
+
+# =========================
+# 패턴 분석
 # =========================
 def structured_keywords(df):
     result = []
@@ -43,48 +49,49 @@ def structured_keywords(df):
         text = str(row["text"])
         region = row.get("region", "unknown")
 
-        intent = advanced_intent(text)
+        intent = classify_intent(text)
+        detail = intent_detail(text)
 
-        result.append(f"{intent}-{region}")
+        result.append(f"{intent}-{detail}-{region}")
 
     return Counter(result).most_common(30)
 
 
 # =========================
-# 3. 마케팅 추천
+# 마케팅 추천
 # =========================
 def marketing_recommend(df):
     r = df["intent"].value_counts(normalize=True)
 
     out = []
 
-    if r.get("점심 식사", 0) > 0.4:
-        out.append("런치 메뉴 + 회전율 중심 광고 필요")
+    if r.get("식사/점심", 0) > 0.4:
+        out.append("런치 메뉴 강화 + 회전율 전략")
 
-    if r.get("감성 데이트", 0) > 0.2:
-        out.append("감성/데이트 광고 강화 필요")
+    if r.get("데이트", 0) > 0.2:
+        out.append("감성/데이트 마케팅 강화")
 
-    if r.get("장시간 체류", 0) > 0.15:
-        out.append("음료/디저트 강화 필요")
+    if r.get("대기/카페", 0) > 0.15:
+        out.append("체류형 메뉴 강화")
 
     return out
 
 
 # =========================
-# 4. 광고 문구
+# 광고 문구
 # =========================
 def ad_copy(df):
     r = df["intent"].value_counts(normalize=True)
 
     ads = []
 
-    if r.get("점심 식사", 0) > 0.4:
-        ads.append("✔ 빠르게 나오는 점심 파스타")
+    if r.get("식사/점심", 0) > 0.4:
+        ads.append("15분 런치 파스타")
 
-    if r.get("감성 데이트", 0) > 0.2:
-        ads.append("✔ 신부동 감성 데이트 맛집")
+    if r.get("데이트", 0) > 0.2:
+        ads.append("신부동 감성 데이트 맛집")
 
-    if r.get("장시간 체류", 0) > 0.15:
-        ads.append("✔ 오래 머물기 좋은 카페 분위기")
+    if r.get("대기/카페", 0) > 0.15:
+        ads.append("카페처럼 머물기 좋은 공간")
 
     return ads
