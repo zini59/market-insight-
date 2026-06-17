@@ -1,68 +1,100 @@
 from collections import Counter
 import re
 
-STOPWORDS = ["은","는","이","가","을","를","에","에서","하다"]
-
-# 1. 목적 분류 (상위)
-def classify_purpose(text):
+# =========================
+# 1. 기본 방문 목적
+# =========================
+def classify_intent(text):
     text = str(text)
 
-    if "점심" in text or "먹" in text or "식사" in text:
-        return "점심"
+    if any(w in text for w in ["점심", "식사", "먹", "혼밥"]):
+        return "식사/점심"
 
-    if "데이트" in text:
+    if any(w in text for w in ["데이트", "분위기", "연인"]):
         return "데이트"
 
-    if "카페" in text or "시간" in text or "대기" in text:
-        return "대기"
+    if any(w in text for w in ["카페", "시간", "대기", "기다"]):
+        return "대기/카페"
 
-    if "팝업" in text:
-        return "팝업"
+    if any(w in text for w in ["터미널", "버스", "잠깐"]):
+        return "이동"
+
+    if any(w in text for w in ["회식", "모임", "술"]):
+        return "회식"
 
     return "기타"
 
 
-# 2. 카테고리 분류 (중간)
-def classify_category(text):
+# =========================
+# 2. 세부 방문 목적
+# =========================
+def intent_detail(text):
     text = str(text)
 
-    if "파스타" in text or "리조또" in text:
-        return "파스타"
+    if any(w in text for w in ["빨리", "급하게", "짧게"]):
+        return "빠른 점심"
 
-    if "카페" in text:
-        return "카페"
+    if any(w in text for w in ["데이트", "분위기", "감성"]):
+        return "분위기 점심"
 
-    if "레스토랑" in text or "이탈리안" in text:
-        return "레스토랑"
+    if any(w in text for w in ["터미널", "버스", "잠깐"]):
+        return "이동형 식사"
 
-    if "터미널" in text:
-        return "터미널"
-
-    return "기타"
+    return "일반"
 
 
-# 3. 키워드 구조 생성
+# =========================
+# 3. 구조형 키워드
+# =========================
 def structured_keywords(df):
     results = []
 
     for _, row in df.iterrows():
         text = str(row["text"])
+        intent = classify_intent(text)
+        detail = intent_detail(text)
+        region = row.get("region", "unknown")
 
-        purpose = classify_purpose(text)
-        category = classify_category(text)
-        place = row.get("region", "unknown")
-
-        results.append(f"{purpose}-{category}-{place}")
+        results.append(f"{intent}-{detail}-{region}")
 
     return Counter(results).most_common(30)
 
 
-# 4. 일반 키워드 (보조)
-def extract_keywords(texts):
-    words = []
+# =========================
+# 4. 마케팅 추천
+# =========================
+def marketing_recommend(df):
+    intent_ratio = df["intent"].value_counts(normalize=True)
 
-    for t in texts:
-        tokens = re.findall(r'\w+', str(t))
-        words.extend([w for w in tokens if w not in STOPWORDS])
+    result = []
 
-    return Counter(words).most_common(20)
+    if intent_ratio.get("식사/점심", 0) > 0.4:
+        result.append("런치세트 / 빠른 회전 강조")
+
+    if intent_ratio.get("데이트", 0) > 0.2:
+        result.append("분위기 / 감성 마케팅 강화")
+
+    if intent_ratio.get("대기/카페", 0) > 0.15:
+        result.append("체류형 메뉴 / 음료 강화")
+
+    return result
+
+
+# =========================
+# 5. 광고 문구 생성
+# =========================
+def ad_copy(df):
+    intent_ratio = df["intent"].value_counts(normalize=True)
+
+    ads = []
+
+    if intent_ratio.get("식사/점심", 0) > 0.4:
+        ads.append("✔ 15분 안에 나오는 런치 파스타")
+
+    if intent_ratio.get("데이트", 0) > 0.2:
+        ads.append("✔ 신부동 감성 데이트 맛집")
+
+    if intent_ratio.get("대기/카페", 0) > 0.15:
+        ads.append("✔ 커피 한잔하기 좋은 공간")
+
+    return ads
