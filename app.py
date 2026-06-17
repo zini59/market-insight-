@@ -1,45 +1,53 @@
 import streamlit as st
 import pandas as pd
 
-from analyzer import classify_intent, structured_keywords, classify_age
-from utils import filter_region, filter_date, filter_multi
+from analyzer import (
+    classify_intent,
+    intent_detail,
+    structured_keywords,
+    marketing_recommend,
+    ad_copy
+)
 
-st.set_page_config(page_title="상권 분석", layout="wide")
+# =========================
+# 기본 설정
+# =========================
+st.set_page_config(page_title="상권 분석 대시보드", layout="wide")
 
-# ======================
-# 데이터
-# ======================
+st.title("📊 상권 방문 목적 분석 시스템")
+st.caption("지역 + 기간 + 방문 목적 기반 분석")
+
+# =========================
+# 데이터 로드
+# =========================
 df = pd.read_csv("data/reviews.csv")
 
+# =========================
+# 분석 컬럼 생성
+# =========================
 df["intent"] = df["text"].apply(classify_intent)
-df["age"] = df["text"].apply(classify_age)
+df["detail"] = df["text"].apply(intent_detail)
 
-# ======================
+# =========================
 # 사이드바 필터
-# ======================
-st.sidebar.title("🔎 필터")
+# =========================
+st.sidebar.header("🔎 필터")
 
-region = st.sidebar.selectbox("지역", ["전체","신부동","터미널"])
-days = st.sidebar.slider("최근 N일", 1, 30, 7)
+region = st.sidebar.selectbox("지역", ["전체", "신부동", "터미널"])
+days = st.sidebar.slider("최근 N일 (미구현 데이터 기준)", 1, 30, 7)
 
 kw1 = st.sidebar.text_input("키워드 1", "점심")
 kw2 = st.sidebar.text_input("키워드 2", "파스타")
 
-# 필터 적용
-df = filter_region(df, region)
-df = filter_date(df, days)
+# =========================
+# 지역 필터 (간단 버전)
+# =========================
+if region != "전체":
+    df = df[df["region"] == region]
 
-filtered_df = filter_multi(df, [kw1, kw2])
-
-# ======================
-# 헤더
-# ======================
-st.title("📊 상권 방문 목적 분석 대시보드")
-st.caption("지역 기반 소비 목적 + 키워드 분석")
-
-# ======================
-# KPI 카드
-# ======================
+# =========================
+# KPI
+# =========================
 col1, col2, col3, col4 = st.columns(4)
 
 col1.metric("총 데이터", len(df))
@@ -49,41 +57,58 @@ col4.metric("대기 비율", f"{(df['intent']=='대기/카페').mean()*100:.1f}%
 
 st.divider()
 
-# ======================
+# =========================
 # 탭 구조
-# ======================
-tab1, tab2, tab3 = st.tabs(["📌 방문 목적", "🔑 키워드", "📋 데이터"])
+# =========================
+tab1, tab2, tab3 = st.tabs(["📌 방문 목적", "🧠 세부 분석", "📋 데이터"])
 
-# ----------------------
-# TAB 1: 목적 분석
-# ----------------------
+# -------------------------
+# TAB 1
+# -------------------------
 with tab1:
-    st.subheader("방문 목적 비율")
+    st.subheader("방문 목적 분포")
+    st.bar_chart(df["intent"].value_counts())
 
-    intent_count = df["intent"].value_counts()
-    st.bar_chart(intent_count)
-
-# ----------------------
-# TAB 2: 구조형 키워드
-# ----------------------
+# -------------------------
+# TAB 2
+# -------------------------
 with tab2:
-    st.subheader("핵심 구조 키워드")
+    st.subheader("세부 방문 목적")
 
-    keywords = structured_keywords(df)
+    st.bar_chart(df["detail"].value_counts())
 
-    for k, v in keywords[:30]:
-        st.write(f"**{k}** : {v}")
+    st.subheader("📌 마케팅 추천")
 
-# ----------------------
-# TAB 3: 데이터
-# ----------------------
+    for r in marketing_recommend(df):
+        st.write("👉", r)
+
+    st.subheader("📌 광고 문구")
+
+    for ad in ad_copy(df):
+        st.write("✍️", ad)
+
+# -------------------------
+# TAB 3
+# -------------------------
 with tab3:
-    st.subheader("필터된 데이터 (30개)")
+    st.subheader("원본 데이터")
 
     page = st.number_input("페이지", 1, 100, 1)
     size = 30
 
-    start = (page-1)*size
+    start = (page - 1) * size
     end = start + size
 
-    st.dataframe(filtered_df.iloc[start:end], use_container_width=True)
+    st.dataframe(df.iloc[start:end], use_container_width=True)
+
+# =========================
+# 키워드 구조 분석
+# =========================
+st.divider()
+
+st.subheader("🔑 구조형 키워드 (상권 패턴)")
+
+keywords = structured_keywords(df)
+
+for k, v in keywords[:30]:
+    st.write(f"**{k}** → {v}")
