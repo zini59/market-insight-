@@ -6,34 +6,34 @@ from collections import Counter
 def classify_intent(text):
     text = str(text)
 
-    if any(w in text for w in ["점심", "식사", "혼밥"]):
+    if "점심" in text or "식사" in text or "맛집" in text:
         return "식사/점심"
 
-    if any(w in text for w in ["데이트", "분위기"]):
+    if "데이트" in text or "분위기" in text:
         return "데이트"
 
-    if any(w in text for w in ["카페", "대기"]):
+    if "카페" in text or "대기" in text:
         return "대기/카페"
 
-    if any(w in text for w in ["터미널", "버스"]):
+    if "터미널" in text or "버스" in text:
         return "이동"
 
     return "기타"
 
 
 # =========================
-# 세부 목적
+# 세부 목적 분석
 # =========================
 def intent_detail(text):
     text = str(text)
 
-    if any(w in text for w in ["빨리", "급하게"]):
+    if "빨리" in text or "급하게" in text:
         return "빠른 점심"
 
-    if any(w in text for w in ["분위기", "감성"]):
-        return "감성 점심"
+    if "감성" in text or "분위기" in text:
+        return "감성 데이트"
 
-    if any(w in text for w in ["오래", "카페"]):
+    if "오래" in text or "카페" in text:
         return "장시간 체류"
 
     return "일반"
@@ -78,7 +78,7 @@ def marketing_recommend(df):
 
 
 # =========================
-# 광고 문구
+# 광고 문구 생성
 # =========================
 def ad_copy(df):
     r = df["intent"].value_counts(normalize=True)
@@ -92,6 +92,6 @@ def ad_copy(df):
         ads.append("신부동 감성 데이트 맛집")
 
     if r.get("대기/카페", 0) > 0.15:
-        ads.append("카페처럼 머물기 좋은 공간")
+        ads.append("편하게 머무는 공간")
 
     return ads
